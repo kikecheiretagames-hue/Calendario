@@ -1,0 +1,1047 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Calendar Pro</title>
+  <meta name="application-name" content="Calendar Pro" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Calendar Pro" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#3b82f6" />
+  <meta name="description" content="Calendário semanal com sincronização" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    :root{
+      --bg:#f8fafc;--bg2:#f1f5f9;--card:#fff;
+      --border:#e2e8f0;--border2:#cbd5e1;
+      --text:#0f172a;--text2:#64748b;--text3:#94a3b8;
+      --primary:#3b82f6;--primary-dark:#2563eb;
+      --danger:#ef4444;--r:8px;--r-lg:14px;
+    }
+    body.dark{
+      --bg:#0f172a;--bg2:#1e293b;--card:#111827;
+      --border:#1f2937;--border2:#374151;
+      --text:#f1f5f9;--text2:#94a3b8;--text3:#475569;
+    }
+    html,body{height:100%;overflow:hidden}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;display:flex;flex-direction:column}
+
+    /* ── PASSWORD SCREEN ── */
+    #lockScreen{
+      position:fixed;inset:0;z-index:9999;
+      background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);
+      display:flex;align-items:center;justify-content:center;
+      flex-direction:column;gap:20px;padding:24px;
+    }
+    #lockScreen.hidden{display:none}
+    .lock-card{
+      background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+      border-radius:18px;padding:36px 32px;width:100%;max-width:360px;
+      display:flex;flex-direction:column;align-items:center;gap:18px;
+      backdrop-filter:blur(12px);
+    }
+    .lock-icon{font-size:44px;margin-bottom:4px}
+    .lock-title{color:#f1f5f9;font-size:20px;font-weight:700;letter-spacing:-.02em}
+    .lock-sub{color:#94a3b8;font-size:13px;text-align:center}
+    .lock-input{
+      width:100%;padding:13px 16px;font-size:16px;border-radius:10px;
+      border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);
+      color:#f1f5f9;outline:none;font-family:inherit;letter-spacing:.1em;
+      text-align:center;transition:.2s;
+    }
+    .lock-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.25);}
+    .lock-input::placeholder{letter-spacing:normal;color:#64748b}
+    .lock-btn{
+      width:100%;padding:13px;background:#3b82f6;color:#fff;border:none;
+      border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;
+      font-family:inherit;transition:.15s;
+    }
+    .lock-btn:hover{background:#2563eb}
+    .lock-btn:active{opacity:.85}
+    .lock-err{color:#ef4444;font-size:13px;min-height:18px;text-align:center}
+
+    button{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:6px 12px;font-size:13px;font-weight:500;border-radius:var(--r);border:1px solid var(--border2);background:var(--card);color:var(--text);cursor:pointer;transition:.12s;font-family:inherit;-webkit-appearance:none}
+    button:hover{background:var(--bg2)}
+    button:active{opacity:.75}
+    .btn-icon{padding:7px 8px;min-width:36px}
+    .btn-danger{background:var(--danger)!important;color:#fff!important;border-color:var(--danger)!important}
+
+    /* TOPBAR */
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;gap:8px;z-index:20}
+    .topbar-brand{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:600}
+    .topbar-brand i{color:var(--primary);font-size:19px}
+    .topbar-nav{display:flex;align-items:center;gap:5px;flex:1;justify-content:center}
+    .week-label{font-size:12px;color:var(--text2);min-width:120px;text-align:center;font-weight:500;white-space:nowrap}
+    .topbar-right{display:flex;align-items:center;gap:5px}
+
+    .sync-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;margin-left:4px;transition:background .3s}
+    .sync-dot.syncing{background:#f59e0b;animation:pulse 1s infinite}
+    .sync-dot.error{background:var(--danger)}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+    /* DAY TABS */
+    .day-tabs{display:none;overflow-x:auto;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;scrollbar-width:none}
+    .day-tabs::-webkit-scrollbar{display:none}
+    .day-tabs-inner{display:flex;padding:6px 8px;gap:5px;min-width:max-content}
+    .day-tab{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border2);background:var(--card);color:var(--text2);white-space:nowrap;cursor:pointer}
+    .day-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .day-tab.has-events{position:relative}
+    .day-tab.has-events::after{content:"";position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;background:var(--primary)}
+    .day-tab.active.has-events::after{background:#fff}
+
+    /* MAIN LAYOUT */
+    .main{display:grid;grid-template-columns:220px 1fr;flex:1;overflow:hidden}
+
+    /* SIDEBAR */
+    .sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden}
+    .sidebar-section{padding:13px;border-bottom:1px solid var(--border)}
+    .sidebar-section:last-child{border-bottom:none;flex:1}
+    .sec-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px}
+    .field{margin-bottom:8px}
+    .field label{display:block;font-size:11px;color:var(--text2);margin-bottom:3px}
+    .field input,.field select{width:100%;padding:7px 10px;font-size:13px;border-radius:var(--r);border:1px solid var(--border2);background:var(--card);color:var(--text);font-family:inherit;outline:none;transition:.15s;-webkit-appearance:none}
+    .field input:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+    .time-row{display:flex;gap:8px}
+    .time-row .field{flex:1}
+    .recur-row{display:flex;gap:4px;margin-bottom:10px}
+    .recur-btn{flex:1;padding:6px 2px;font-size:10px;font-weight:500;border-radius:var(--r);border:1px solid var(--border2);background:var(--card);color:var(--text2);cursor:pointer;text-align:center;transition:.12s;line-height:1.3}
+    .recur-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .priority-row{display:flex;gap:6px;margin-bottom:10px}
+    .pdot{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;transition:.15s;position:relative}
+    .pdot.active{transform:scale(1.1)}
+    .pdot.active::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid currentColor;opacity:.5}
+    .add-btn{width:100%;padding:9px;font-size:13px;font-weight:500;background:var(--primary);color:#fff;border:none;border-radius:var(--r);margin-top:2px;cursor:pointer}
+    .add-btn:hover{background:var(--primary-dark)}
+    .add-btn:disabled{opacity:.6;cursor:not-allowed}
+    .legend{display:flex;flex-direction:column;gap:6px}
+    .leg-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
+    .leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+    .event-list{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto}
+    .ev-chip{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:var(--r);border:1px solid var(--border);background:var(--card);font-size:12px}
+    .ev-chip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .ev-chip-info{flex:1;overflow:hidden}
+    .ev-chip-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);font-weight:500}
+    .ev-chip-meta{font-size:10px;color:var(--text3);display:flex;align-items:center;gap:4px;margin-top:1px;flex-wrap:wrap}
+    .recur-badge{background:var(--bg2);border-radius:4px;padding:1px 4px;font-size:9px;color:var(--text3);border:1px solid var(--border)}
+    .ev-chip-del{border:none;background:none;padding:3px;color:var(--text3);cursor:pointer;border-radius:4px;font-size:14px;line-height:1;flex-shrink:0}
+    .ev-chip-del:hover{background:rgba(239,68,68,.1);color:var(--danger)}
+    .empty-msg{font-size:12px;color:var(--text3);text-align:center;padding:14px 0}
+
+    /* NOTIF FIELD */
+    .notif-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+    .notif-row label{font-size:11px;color:var(--text2);flex:1}
+    .notif-toggle{position:relative;width:34px;height:20px;flex-shrink:0}
+    .notif-toggle input{opacity:0;width:0;height:0}
+    .notif-slider{position:absolute;inset:0;background:var(--border2);border-radius:20px;cursor:pointer;transition:.2s}
+    .notif-slider::before{content:"";position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+    .notif-toggle input:checked+.notif-slider{background:var(--primary)}
+    .notif-toggle input:checked+.notif-slider::before{transform:translateX(14px)}
+    .notif-time-wrap{display:flex;align-items:center;gap:6px}
+    .notif-time-wrap input[type=time]{flex:1;padding:6px 8px;font-size:12px;border-radius:var(--r);border:1px solid var(--border2);background:var(--card);color:var(--text);outline:none}
+    .notif-time-wrap input[type=time]:focus{border-color:var(--primary)}
+    .notif-hint{font-size:10px;color:var(--text3);margin-top:-4px;margin-bottom:6px;line-height:1.4}
+
+    /* CALENDAR AREA */
+    .cal-area{overflow:auto;background:var(--card);position:relative}
+
+    /* DESKTOP GRID */
+    .cal-grid{display:grid;grid-template-columns:44px repeat(7,1fr);min-width:520px}
+    .cal-corner{border-right:1px solid var(--border);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:11;background:var(--card)}
+    .day-hdr{padding:7px 4px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card);z-index:10}
+    .dname{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em}
+    .dnum{font-size:17px;font-weight:500;display:inline-block;width:30px;height:30px;line-height:30px;border-radius:50%;margin-top:2px}
+    .day-hdr.today .dname{color:var(--primary)}
+    .day-hdr.today .dnum{background:var(--primary);color:#fff}
+    .time-col{border-right:1px solid var(--border);position:relative}
+    .time-slot{height:48px;display:flex;align-items:flex-start;justify-content:flex-end;padding-right:7px;border-bottom:1px solid var(--border);position:absolute;left:0;right:0}
+    .time-slot span{font-size:9px;color:var(--text3);margin-top:-6px}
+    .day-col{border-right:1px solid var(--border);position:relative}
+    .hour-bg{position:absolute;left:0;right:0;height:48px;border-bottom:1px solid var(--border)}
+    .hour-bg.alt{background:var(--bg2);opacity:.3}
+    .half-line{position:absolute;left:0;right:0;border-top:1px dashed var(--border);opacity:.4;pointer-events:none}
+    .now-line{position:absolute;left:0;right:0;border-top:2px solid var(--danger);pointer-events:none;z-index:5}
+    .now-dot{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--danger)}
+    .ev-block{position:absolute;border-radius:6px;padding:3px 6px;font-size:11px;font-weight:500;cursor:pointer;overflow:hidden;border-left:3px solid transparent;transition:.1s;z-index:2}
+    .ev-block:hover{filter:brightness(.88)}
+    .ev-title-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+    .ev-time-t{font-size:9px;opacity:.75;margin-top:1px}
+    .ev-recur-icon{position:absolute;top:3px;right:4px;font-size:9px;opacity:.6}
+
+    /* MOBILE CALENDAR */
+    .mobile-cal{display:none;flex-direction:row;width:100%;height:100%}
+    .mobile-time-col{width:36px;flex-shrink:0;position:relative;border-right:1px solid var(--border)}
+    .mobile-time-slot{position:absolute;left:0;right:0;height:48px;display:flex;align-items:flex-start;justify-content:flex-end;padding-right:5px;border-bottom:1px solid var(--border)}
+    .mobile-time-slot span{font-size:8px;color:var(--text3);margin-top:-6px}
+    .mobile-day-col{flex:1;position:relative;overflow:hidden}
+    .mobile-hour-bg{position:absolute;left:0;right:0;height:48px;border-bottom:1px solid var(--border)}
+    .mobile-hour-bg.alt{background:var(--bg2);opacity:.3}
+    .mobile-half-line{position:absolute;left:0;right:0;border-top:1px dashed var(--border);opacity:.4;pointer-events:none}
+
+    /* BOTTOM SHEET */
+    .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;display:none;opacity:0;transition:.25s}
+    .sheet-overlay.show{display:block;opacity:1}
+    .bottom-sheet{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:var(--r-lg) var(--r-lg) 0 0;z-index:51;transform:translateY(100%);transition:.3s cubic-bezier(.4,0,.2,1);max-height:92vh;display:flex;flex-direction:column}
+    .bottom-sheet.show{transform:translateY(0)}
+    .sheet-handle{width:40px;height:4px;border-radius:2px;background:var(--border2);margin:10px auto 0}
+    .sheet-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+    .sheet-header h3{font-size:15px;font-weight:600}
+    .sheet-body{overflow-y:auto;padding:14px 16px 32px;flex:1}
+    .sheet-body .field input,.sheet-body .field select{padding:10px 12px;font-size:15px}
+    .sheet-body .add-btn{padding:13px;font-size:15px}
+    .sheet-body .recur-btn{padding:9px 4px;font-size:12px}
+    .sheet-body .pdot{width:36px;height:36px}
+
+    /* FAB */
+    .fab{position:fixed;bottom:20px;right:18px;width:52px;height:52px;border-radius:50%;background:var(--primary);color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(59,130,246,.45);z-index:30;display:none;align-items:center;justify-content:center;transition:.15s}
+    .fab:active{transform:scale(.92)}
+
+    /* MODAL */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:none;align-items:center;justify-content:center;padding:16px}
+    .modal-overlay.show{display:flex}
+    .modal{background:var(--card);border-radius:var(--r-lg);padding:20px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+    .modal h3{font-size:15px;font-weight:600;margin-bottom:6px}
+    .modal p{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5}
+    .modal-btns{display:flex;gap:8px}
+    .modal-btns button{flex:1;padding:10px}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#0f172a;color:#fff;padding:8px 16px;border-radius:var(--r);font-size:13px;opacity:0;transition:.3s;pointer-events:none;z-index:99;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    body.dark .toast{background:#f1f5f9;color:#0f172a}
+
+    ::-webkit-scrollbar{width:4px;height:4px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:10px}
+
+    /* NOTIF PERMISSION BANNER */
+    #notifBanner{display:none;position:fixed;top:0;left:0;right:0;background:#7c3aed;color:#fff;padding:10px 16px;z-index:200;align-items:center;justify-content:space-between;gap:10px;font-size:13px}
+    #notifBanner.show{display:flex}
+
+    @media(max-width:640px){
+      .topbar-brand span{display:none}
+      .main{grid-template-columns:1fr}
+      .sidebar{display:none}
+      .day-tabs{display:block}
+      .fab{display:flex}
+      .topbar{padding:8px 10px}
+      .week-label{min-width:80px;font-size:11px}
+      .cal-grid{display:none!important}
+      .mobile-cal{display:flex!important}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── PASSWORD SCREEN ── -->
+<div id="lockScreen">
+  <div class="lock-card">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-title">Calendar Pro</div>
+    <div class="lock-sub">Introduz a password para aceder</div>
+    <input class="lock-input" id="lockInput" type="password" placeholder="Password" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')checkPassword()" />
+    <div class="lock-err" id="lockErr"></div>
+    <button class="lock-btn" onclick="checkPassword()">Entrar</button>
+  </div>
+</div>
+
+<!-- ── NOTIF PERMISSION BANNER ── -->
+<div id="notifBanner">
+  <span>🔔 Ativa as notificações para receber alertas dos eventos</span>
+  <div style="display:flex;gap:8px;flex-shrink:0">
+    <button onclick="document.getElementById('notifBanner').classList.remove('show')" style="background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff;padding:5px 10px;font-size:12px">Agora não</button>
+    <button onclick="requestNotifPermission()" style="background:#fff;border:none;color:#7c3aed;padding:5px 14px;font-size:12px;font-weight:600">Ativar</button>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <i class="ti ti-calendar-event"></i>
+    <span>Calendar Pro</span>
+    <span class="sync-dot" id="syncDot" title="Estado da ligação"></span>
+  </div>
+  <div class="topbar-nav">
+    <button class="btn-icon" onclick="changeWeek(-1)"><i class="ti ti-chevron-left"></i></button>
+    <span class="week-label" id="weekLabel"></span>
+    <button class="btn-icon" onclick="changeWeek(1)"><i class="ti ti-chevron-right"></i></button>
+    <button onclick="goToday()" style="padding:6px 10px">Hoje</button>
+  </div>
+  <div class="topbar-right">
+    <button class="btn-icon" id="installBtn" onclick="installApp()" style="display:none" title="Instalar app"><i class="ti ti-download"></i></button>
+    <button class="btn-icon" id="themeBtn" onclick="toggleTheme()"><i class="ti ti-moon"></i></button>
+  </div>
+</div>
+
+<div class="day-tabs"><div class="day-tabs-inner" id="dayTabs"></div></div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sec-title">Novo evento</div>
+      <div class="field"><label>Título</label><input id="evTitle" placeholder="Nome do evento" autocomplete="off"/></div>
+      <div class="field"><label>Data</label><input type="date" id="evDay"/></div>
+      <div class="time-row">
+        <div class="field"><label>Início</label><input type="time" id="evStart" value="09:00"/></div>
+        <div class="field"><label>Fim</label><input type="time" id="evEnd" value="10:00"/></div>
+      </div>
+      <div class="field">
+        <label>Repetição</label>
+        <div class="recur-row">
+          <div class="recur-btn active" data-r="week" onclick="selectR('week')">📅 Esta semana</div>
+          <div class="recur-btn" data-r="always" onclick="selectR('always')">🔁 Toda semana</div>
+          <div class="recur-btn" data-r="yearly" onclick="selectR('yearly')">📆 Anual</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Prioridade</label>
+        <div class="priority-row">
+          <div class="pdot active" data-p="low" style="background:#22c55e" onclick="selectP('low')" title="Baixa"></div>
+          <div class="pdot" data-p="medium" style="background:#f59e0b" onclick="selectP('medium')" title="Média"></div>
+          <div class="pdot" data-p="high" style="background:#ef4444" onclick="selectP('high')" title="Alta"></div>
+        </div>
+      </div>
+      <!-- NOTIFICAÇÕES DESKTOP -->
+      <div style="border-top:1px solid var(--border);padding-top:9px;margin-top:2px">
+        <div class="notif-row">
+          <label style="font-size:11px;color:var(--text2)">🔔 Notificações</label>
+          <label class="notif-toggle"><input type="checkbox" id="evNotif" checked onchange="toggleNotifD()"><span class="notif-slider"></span></label>
+        </div>
+        <div id="notifTimeWrap" class="notif-time-wrap">
+          <div style="flex:1">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:3px">Hora (no próprio dia)</div>
+            <input type="time" id="evNotifTime" placeholder="Deixar vazio = 9h, 13h, 16:30h" style="width:100%;padding:6px 8px;font-size:12px;border-radius:var(--r);border:1px solid var(--border2);background:var(--card);color:var(--text);outline:none"/>
+          </div>
+        </div>
+        <div class="notif-hint">Se deixares em branco: 9h, 13h e 16:30h<br>Dia anterior: sempre às 9h, 13h e 16:30h</div>
+      </div>
+      <button class="add-btn" id="addBtnDesktop" onclick="addTask()"><i class="ti ti-plus"></i> Adicionar</button>
+    </div>
+    <div class="sidebar-section">
+      <div class="sec-title">Legenda</div>
+      <div class="legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#22c55e"></div>Baixa prioridade</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f59e0b"></div>Média prioridade</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#ef4444"></div>Alta prioridade</div>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sec-title">Eventos (<span id="evCount">0</span>)</div>
+      <div class="event-list" id="eventList"></div>
+    </div>
+  </div>
+
+  <div class="cal-area" id="calArea">
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="mobile-cal" id="mobileCal"></div>
+  </div>
+</div>
+
+<button class="fab" onclick="openSheet()" aria-label="Adicionar evento"><i class="ti ti-plus"></i></button>
+
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
+<div class="bottom-sheet" id="bottomSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h3>Novo evento</h3>
+    <button class="btn-icon" onclick="closeSheet()"><i class="ti ti-x"></i></button>
+  </div>
+  <div class="sheet-body">
+    <div class="field"><label>Título</label><input id="evTitleM" placeholder="Nome do evento" autocomplete="off"/></div>
+    <div class="field"><label>Data</label><input type="date" id="evDayM"/></div>
+    <div class="time-row">
+      <div class="field"><label>Início</label><input type="time" id="evStartM" value="09:00"/></div>
+      <div class="field"><label>Fim</label><input type="time" id="evEndM" value="10:00"/></div>
+    </div>
+    <div class="field">
+      <label>Repetição</label>
+      <div class="recur-row">
+        <div class="recur-btn active" data-rm="week" onclick="selectRM('week')">📅 Esta semana</div>
+        <div class="recur-btn" data-rm="always" onclick="selectRM('always')">🔁 Toda semana</div>
+        <div class="recur-btn" data-rm="yearly" onclick="selectRM('yearly')">📆 Anual</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Prioridade</label>
+      <div class="priority-row">
+        <div class="pdot active" data-pm="low" style="background:#22c55e" onclick="selectPM('low')"></div>
+        <div class="pdot" data-pm="medium" style="background:#f59e0b" onclick="selectPM('medium')"></div>
+        <div class="pdot" data-pm="high" style="background:#ef4444" onclick="selectPM('high')"></div>
+      </div>
+    </div>
+    <!-- NOTIFICAÇÕES MOBILE -->
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:8px">
+      <div class="notif-row">
+        <label style="font-size:13px;color:var(--text2)">🔔 Notificações</label>
+        <label class="notif-toggle"><input type="checkbox" id="evNotifM" checked onchange="toggleNotifM()"><span class="notif-slider"></span></label>
+      </div>
+      <div id="notifTimeWrapM" class="notif-time-wrap" style="margin-top:8px">
+        <div style="flex:1">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:5px">Hora do próprio dia (opcional)</div>
+          <input type="time" id="evNotifTimeM" style="width:100%;padding:10px 12px;font-size:15px;border-radius:var(--r);border:1px solid var(--border2);background:var(--card);color:var(--text);outline:none"/>
+        </div>
+      </div>
+      <div class="notif-hint" style="font-size:11px;margin-top:6px">Se deixares em branco: 9h, 13h e 16:30h<br>Dia anterior: sempre às 9h, 13h e 16:30h</div>
+    </div>
+    <button class="add-btn" id="addBtnMobile" onclick="addTaskMobile()"><i class="ti ti-plus"></i> Adicionar</button>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h3>Apagar evento</h3>
+    <p id="deleteModalText"></p>
+    <div class="modal-btns">
+      <button onclick="closeDeleteModal()">Cancelar</button>
+      <button class="btn-danger" onclick="confirmDelete()">Apagar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- PWA Install Banner -->
+<div id="installBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#1e293b;color:#fff;padding:12px 16px;z-index:200;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 -4px 20px rgba(0,0,0,.25)">
+  <div style="display:flex;align-items:center;gap:10px">
+    <span style="font-size:24px">📅</span>
+    <div>
+      <div style="font-weight:600;font-size:14px">Instalar Calendar Pro</div>
+      <div style="font-size:12px;opacity:.7" id="installBannerSub">Adicionar ao ecrã inicial</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-shrink:0">
+    <button onclick="document.getElementById('installBanner').style.display='none'" style="background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 12px;font-size:13px">Agora não</button>
+    <button onclick="installApp()" id="installBannerBtn" style="background:#3b82f6;border:none;color:#fff;padding:6px 14px;font-size:13px;font-weight:600">Instalar</button>
+  </div>
+</div>
+
+<script>
+
+  // ── PASSWORD ───────────────────────────────────────────
+  const APP_PASSWORD = "Calendario-Fontes";
+  function checkPassword(){
+    const val = document.getElementById("lockInput").value;
+    if(val === APP_PASSWORD){
+      document.getElementById("lockScreen").classList.add("hidden");
+      initApp();
+    } else {
+      document.getElementById("lockErr").textContent = "Password incorreta. Tenta novamente.";
+      document.getElementById("lockInput").value = "";
+      document.getElementById("lockInput").focus();
+    }
+  }
+  // Focus password input on load
+  window.addEventListener("load", ()=>{
+    document.getElementById("lockInput").focus();
+  });
+
+  // ── SUPABASE ──────────────────────────────────────────
+  const SUPA_URL = "https://kpvzzrcvffmogcxzupfk.supabase.co";
+  const SUPA_KEY = "sb_publishable_vY2e4l9sOa5Elgy_kFeYsw_O4BpNxS-";
+  const HDR = {
+    "Content-Type":"application/json",
+    "apikey":SUPA_KEY,
+    "Authorization":"Bearer "+SUPA_KEY,
+    "Prefer":"return=representation"
+  };
+  async function dbFetch(path,opts={}){
+    const r=await fetch(SUPA_URL+"/rest/v1/"+path,{headers:HDR,...opts});
+    if(!r.ok){const e=await r.text();throw new Error(e);}
+    return r.status===204?null:r.json();
+  }
+
+  // ── CONSTANTS ─────────────────────────────────────────
+  const DAYS_SHORT=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  const PCOLORS={low:"#22c55e",medium:"#f59e0b",high:"#ef4444"};
+  const PX_H=48, HOURS=24;
+  const DEFAULT_NOTIF_TIMES = ["09:00","13:00","16:30"];
+
+  let tasks=[], selectedP="low", selectedPM="low";
+  let selectedR="week", selectedRM="week";
+  let weekOffset=0, mobileDay=new Date().getDay();
+  let pendingDeleteId=null;
+  let notifEnabled=true, notifEnabledM=true;
+  let notifScheduleTimer=null;
+
+  // ── INIT APP (chamado após password correta) ──────────
+  function initApp(){
+    document.getElementById("evDay").value=todayStr();
+    document.getElementById("evDayM").value=todayStr();
+    loadTheme();
+    loadFromSupabase();
+    document.getElementById("evTitle").addEventListener("keydown",e=>{if(e.key==="Enter")addTask();});
+    document.getElementById("evTitleM").addEventListener("keydown",e=>{if(e.key==="Enter")addTaskMobile();});
+    window.addEventListener("resize",()=>render());
+    setInterval(()=>render(),60000);
+    setInterval(()=>loadFromSupabase(),30000);
+    document.getElementById("deleteModal").addEventListener("click",function(e){if(e.target===this)closeDeleteModal();});
+
+    // Notificações
+    setupNotifications();
+    setInterval(checkScheduledNotifs, 30000); // verifica a cada 30s
+
+    // PWA Install
+    setupPWA();
+
+    // Service Worker
+    if("serviceWorker" in navigator){
+      navigator.serviceWorker.register("./sw.js",{scope:"./"}).catch(()=>{});
+    }
+
+    window.addEventListener("offline",()=>toast("Sem ligação — a trabalhar offline",3000));
+    window.addEventListener("online",()=>{toast("Ligação reposta ✓");loadFromSupabase();});
+  }
+
+  // ── DATE HELPERS ──────────────────────────────────────
+  function dateStr(d){return d.toISOString().slice(0,10);}
+  function parseDate(s){let[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d);}
+  function isLeapYear(y){return (y%4===0&&y%100!==0)||y%400===0;}
+  function todayStr(){return dateStr(new Date());}
+  function taskMatchesDate(t, calDate){
+    let stored=parseDate(t.date);
+    if(t.recurrence==="week"){
+      return stored.getFullYear()===calDate.getFullYear()&&stored.getMonth()===calDate.getMonth()&&stored.getDate()===calDate.getDate();
+    }
+    if(t.recurrence==="always"){
+      return stored.getDay()===calDate.getDay();
+    }
+    if(t.recurrence==="yearly"){
+      let sm=stored.getMonth(), sd=stored.getDate();
+      let cm=calDate.getMonth(), cd=calDate.getDate(), cy=calDate.getFullYear();
+      if(sm===1&&sd===29){
+        if(isLeapYear(cy))return cm===1&&cd===29;
+        else return cm===1&&cd===28;
+      }
+      return sm===cm&&sd===cd;
+    }
+    return false;
+  }
+
+  // ── NOTIFICAÇÕES ──────────────────────────────────────
+  function setupNotifications(){
+    if(!("Notification" in window)) return;
+    if(Notification.permission === "default"){
+      document.getElementById("notifBanner").classList.add("show");
+    } else if(Notification.permission === "granted"){
+      // Agendar notificações para hoje e amanhã
+      scheduleAllNotifications();
+    }
+  }
+
+  async function requestNotifPermission(){
+    document.getElementById("notifBanner").classList.remove("show");
+    if(!("Notification" in window)){toast("O teu browser não suporta notificações.");return;}
+    const perm = await Notification.requestPermission();
+    if(perm === "granted"){
+      toast("Notificações ativadas! ✓");
+      scheduleAllNotifications();
+    } else {
+      toast("Notificações bloqueadas pelo browser.");
+    }
+  }
+
+  function scheduleAllNotifications(){
+    // Cancela timers anteriores
+    if(notifScheduleTimer) clearTimeout(notifScheduleTimer);
+    const now = new Date();
+    const todayStr2 = dateStr(now);
+    const tomorrow = new Date(now); tomorrow.setDate(now.getDate()+1);
+    const tomorrowStr = dateStr(tomorrow);
+
+    tasks.forEach(t=>{
+      if(!t.notifEnabled) return;
+      // Verificar se o evento é hoje ou amanhã
+      const isToday = taskMatchesDateStr(t, todayStr2);
+      const isTomorrow = taskMatchesDateStr(t, tomorrowStr);
+
+      if(isToday){
+        // Notificações no próprio dia
+        const times = t.notifTimeDayArr || DEFAULT_NOTIF_TIMES;
+        times.forEach(ht => scheduleNotif(t, ht, "hoje", todayStr2));
+      }
+      if(isTomorrow){
+        // Notificações no dia anterior (hoje) para evento de amanhã
+        DEFAULT_NOTIF_TIMES.forEach(ht => scheduleNotif(t, ht, "amanhã", tomorrowStr));
+      }
+    });
+
+    // Re-agendar na meia-noite do dia seguinte
+    const midnight = new Date(now);
+    midnight.setHours(24,0,5,0);
+    const msToMidnight = midnight - now;
+    notifScheduleTimer = setTimeout(scheduleAllNotifications, msToMidnight);
+  }
+
+  function taskMatchesDateStr(t, dStr){
+    if(!t.date) return false;
+    const calDate = parseDate(dStr);
+    return taskMatchesDate(t, calDate);
+  }
+
+  function scheduleNotif(task, timeStr, label, eventDateStr){
+    if(Notification.permission !== "granted") return;
+    const now = new Date();
+    const [h, m] = timeStr.split(":").map(Number);
+    const triggerDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+    const delay = triggerDate - now;
+    if(delay <= 0) return; // já passou
+
+    const key = `notif_${task.id}_${eventDateStr}_${timeStr}`;
+    if(localStorage.getItem(key)) return; // já agendada nesta sessão
+
+    setTimeout(()=>{
+      if(Notification.permission !== "granted") return;
+      const body = label === "hoje"
+        ? `Hoje às ${task.start} – ${task.end}`
+        : `Amanhã (${eventDateStr.slice(8,10)}/${eventDateStr.slice(5,7)}) às ${task.start} – ${task.end}`;
+      try{
+        const n = new Notification(`📅 ${task.title}`, {
+          body,
+          icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect width='96' height='96' rx='22' fill='%233b82f6'/><text x='48' y='68' font-size='54' text-anchor='middle'>📅</text></svg>",
+          tag: key,
+          requireInteraction: false,
+        });
+        n.onclick = ()=>{ window.focus(); n.close(); };
+      }catch(e){}
+      localStorage.removeItem(key);
+    }, delay);
+
+    localStorage.setItem(key, "1");
+    setTimeout(()=>localStorage.removeItem(key), delay + 5000);
+  }
+
+  function toggleNotifD(){
+    notifEnabled = document.getElementById("evNotif").checked;
+    document.getElementById("notifTimeWrap").style.opacity = notifEnabled ? "1" : ".4";
+    document.getElementById("notifTimeWrap").style.pointerEvents = notifEnabled ? "" : "none";
+  }
+  function toggleNotifM(){
+    notifEnabledM = document.getElementById("evNotifM").checked;
+    document.getElementById("notifTimeWrapM").style.opacity = notifEnabledM ? "1" : ".4";
+    document.getElementById("notifTimeWrapM").style.pointerEvents = notifEnabledM ? "" : "none";
+  }
+
+  // ── SYNC ──────────────────────────────────────────────
+  function setSyncState(s){
+    const d=document.getElementById("syncDot");
+    d.className="sync-dot"+(s==="syncing"?" syncing":s==="error"?" error":"");
+    d.title=s==="ok"?"Ligado":s==="syncing"?"A sincronizar...":"Erro";
+  }
+  async function loadFromSupabase(){
+    setSyncState("syncing");
+    try{
+      const data=await dbFetch("events?select=*&order=start_time.asc");
+      tasks=data.map(r=>({
+        id:r.id, title:r.title,
+        date:r.date||null,
+        day:r.day,
+        start:r.start_time.slice(0,5), end:r.end_time.slice(0,5),
+        recurrence:r.recurrence||"week", weekKey:r.week_key||null, priority:r.priority||"low",
+        notifEnabled: r.notif_enabled !== false,
+        notifTimeDayArr: r.notif_time_day ? [r.notif_time_day.slice(0,5)] : null
+      }));
+      setSyncState("ok");
+      scheduleAllNotifications();
+    }catch(e){
+      console.error(e); setSyncState("error"); toast("Erro ao ligar ao Supabase.");
+      try{tasks=JSON.parse(localStorage.getItem("cpro_v4")||"[]");}catch(_){tasks=[];}
+    }
+    render();
+  }
+  async function saveToSupabase(t){
+    setSyncState("syncing");
+    try{
+      const body={
+        title:t.title,day:t.day,date:t.date,
+        start_time:t.start+":00",end_time:t.end+":00",
+        recurrence:t.recurrence,week_key:t.weekKey,priority:t.priority,
+        notif_enabled: t.notifEnabled,
+        notif_time_day: t.notifTimeDayArr ? t.notifTimeDayArr[0]+":00" : null
+      };
+      const data=await dbFetch("events",{method:"POST",body:JSON.stringify(body)});
+      t.id=data[0].id; setSyncState("ok");
+      scheduleAllNotifications();
+    }catch(e){console.error(e);setSyncState("error");toast("Erro ao guardar.");}
+  }
+  async function deleteFromSupabase(id){
+    setSyncState("syncing");
+    try{await dbFetch("events?id=eq."+id,{method:"DELETE"});setSyncState("ok");}
+    catch(e){console.error(e);setSyncState("error");toast("Erro ao apagar.");}
+  }
+
+  // ── HELPERS ───────────────────────────────────────────
+  function toMin(t){let[h,m]=t.split(":").map(Number);return h*60+m;}
+  function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+  function toast(msg,dur=2200){
+    let el=document.getElementById("toast");
+    el.textContent=msg;el.classList.add("show");
+    clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("show"),dur);
+  }
+  function isMobile(){return window.innerWidth<=640;}
+
+  // ── THEME ─────────────────────────────────────────────
+  function loadTheme(){if(localStorage.getItem("cpro_theme")==="dark")applyDark(true);}
+  function applyDark(on){
+    document.body.classList.toggle("dark",on);
+    document.getElementById("themeBtn").innerHTML=on?'<i class="ti ti-sun"></i>':'<i class="ti ti-moon"></i>';
+  }
+  function toggleTheme(){let on=!document.body.classList.contains("dark");applyDark(on);localStorage.setItem("cpro_theme",on?"dark":"light");}
+
+  // ── SELECTORS ─────────────────────────────────────────
+  function selectP(p){selectedP=p;document.querySelectorAll("[data-p]").forEach(d=>d.classList.toggle("active",d.dataset.p===p));}
+  function selectPM(p){selectedPM=p;document.querySelectorAll("[data-pm]").forEach(d=>d.classList.toggle("active",d.dataset.pm===p));}
+  function selectR(r){selectedR=r;document.querySelectorAll("[data-r]").forEach(d=>d.classList.toggle("active",d.dataset.r===r));}
+  function selectRM(r){selectedRM=r;document.querySelectorAll("[data-rm]").forEach(d=>d.classList.toggle("active",d.dataset.rm===r));}
+
+  // ── WEEK ──────────────────────────────────────────────
+  function getISOWeek(date){
+    let d=new Date(date);d.setHours(0,0,0,0);
+    d.setDate(d.getDate()+4-(d.getDay()||7));
+    let ys=new Date(d.getFullYear(),0,1);
+    let wn=Math.ceil(((d-ys)/86400000+1)/7);
+    return d.getFullYear()+"-W"+String(wn).padStart(2,"0");
+  }
+  function getCurrentWeekKey(){return getISOWeek(getWeekDates()[1]);}
+  function getWeekDates(){
+    let t=new Date(),s=new Date(t);
+    s.setDate(t.getDate()-t.getDay()+weekOffset*7);
+    return Array.from({length:7},(_,i)=>{let d=new Date(s);d.setDate(s.getDate()+i);return d;});
+  }
+  function changeWeek(d){weekOffset+=d;render();}
+  function goToday(){weekOffset=0;mobileDay=new Date().getDay();render();}
+  function isTaskVisible(t){
+    if(t.date){return getWeekDates().some(d=>taskMatchesDate(t,d));}
+    if(t.recurrence==="always")return true;
+    return t.weekKey===getCurrentWeekKey();
+  }
+
+  // ── ADD ───────────────────────────────────────────────
+  function _buildTask(title,dateVal,start,end,priority,recurrence,notifEn,notifTimeVal){
+    let d=parseDate(dateVal);
+    let dayOfWeek=d.getDay();
+    let notifArr = null;
+    if(notifEn && notifTimeVal) notifArr = [notifTimeVal];
+    return{id:Date.now(),title,priority,day:dayOfWeek,date:dateVal,start,end,recurrence,weekKey:recurrence==="week"?getCurrentWeekKey():null,notifEnabled:notifEn,notifTimeDayArr:notifArr};
+  }
+  async function addTask(){
+    let title=document.getElementById("evTitle").value.trim();
+    let dateVal=document.getElementById("evDay").value;
+    let start=document.getElementById("evStart").value;
+    let end=document.getElementById("evEnd").value;
+    let notifEn=document.getElementById("evNotif").checked;
+    let notifTimeVal=document.getElementById("evNotifTime").value;
+    if(!title){toast("Escreve um título primeiro.");return;}
+    if(!dateVal){toast("Escolhe uma data.");return;}
+    if(toMin(start)>=toMin(end)){toast("O fim tem de ser depois do início.");return;}
+    const btn=document.getElementById("addBtnDesktop");btn.disabled=true;
+    let t=_buildTask(title,dateVal,start,end,selectedP,selectedR,notifEn,notifTimeVal);
+    tasks.push(t);render();
+    await saveToSupabase(t);render();
+    document.getElementById("evTitle").value="";
+    document.getElementById("evNotifTime").value="";
+    toast("Evento adicionado!");btn.disabled=false;
+    if(notifEn && Notification.permission==="default") requestNotifPermission();
+  }
+  async function addTaskMobile(){
+    let title=document.getElementById("evTitleM").value.trim();
+    let dateVal=document.getElementById("evDayM").value;
+    let start=document.getElementById("evStartM").value;
+    let end=document.getElementById("evEndM").value;
+    let notifEn=document.getElementById("evNotifM").checked;
+    let notifTimeVal=document.getElementById("evNotifTimeM").value;
+    if(!title){toast("Escreve um título primeiro.");return;}
+    if(!dateVal){toast("Escolhe uma data.");return;}
+    if(toMin(start)>=toMin(end)){toast("O fim tem de ser depois do início.");return;}
+    const btn=document.getElementById("addBtnMobile");btn.disabled=true;
+    let t=_buildTask(title,dateVal,start,end,selectedPM,selectedRM,notifEn,notifTimeVal);
+    tasks.push(t);render();
+    await saveToSupabase(t);render();
+    document.getElementById("evTitleM").value="";
+    document.getElementById("evNotifTimeM").value="";
+    closeSheet();toast("Evento adicionado!");btn.disabled=false;
+    if(notifEn && Notification.permission==="default") requestNotifPermission();
+  }
+
+  // ── DELETE ────────────────────────────────────────────
+  function deleteTask(id){
+    pendingDeleteId=id;
+    let t=tasks.find(x=>x.id===id);if(!t)return;
+    document.getElementById("deleteModalText").textContent=`Apagar "${t.title}"?`;
+    document.getElementById("deleteModal").classList.add("show");
+  }
+  async function confirmDelete(){
+    const id=pendingDeleteId;
+    tasks=tasks.filter(t=>t.id!==id);render();closeDeleteModal();
+    await deleteFromSupabase(id);toast("Evento apagado.");
+  }
+  function closeDeleteModal(){document.getElementById("deleteModal").classList.remove("show");pendingDeleteId=null;}
+
+  // ── SHEET ─────────────────────────────────────────────
+  function openSheet(){
+    let dates=getWeekDates();
+    let activeDate=dates.find(d=>d.getDay()===mobileDay)||dates[0];
+    document.getElementById("evDayM").value=dateStr(activeDate);
+    document.getElementById("sheetOverlay").classList.add("show");
+    document.getElementById("bottomSheet").classList.add("show");
+    setTimeout(()=>document.getElementById("evTitleM").focus(),350);
+  }
+  function closeSheet(){
+    document.getElementById("sheetOverlay").classList.remove("show");
+    document.getElementById("bottomSheet").classList.remove("show");
+  }
+
+  // ── OVERLAP ───────────────────────────────────────────
+  function groupOverlaps(evs){
+    let sorted=[...evs].sort((a,b)=>toMin(a.start)-toMin(b.start));
+    let groups=[];
+    for(let ev of sorted){
+      let placed=false;
+      for(let g of groups){if(toMin(ev.start)<toMin(g[g.length-1].end)){g.push(ev);placed=true;break;}}
+      if(!placed)groups.push([ev]);
+    }
+    return groups;
+  }
+
+  // ── RENDER EVENTS INTO A COLUMN ───────────────────────
+  function renderEventsInCol(col, dayIdx, calDate){
+    let dayTasks=tasks.filter(t=>{
+      if(t.date&&calDate)return taskMatchesDate(t,calDate);
+      return t.day===dayIdx&&isTaskVisible(t);
+    });
+    groupOverlaps(dayTasks).forEach(group=>{
+      let total=group.length;
+      group.forEach((t,idx)=>{
+        let sMin=toMin(t.start),eMin=toMin(t.end);
+        let top=(sMin/60)*PX_H;
+        let height=Math.max(((eMin-sMin)/60)*PX_H,20);
+        let w=100/total,l=idx*w;
+        let c=PCOLORS[t.priority];
+        let ev=document.createElement("div");
+        ev.className="ev-block";
+        ev.style.cssText=`top:${top}px;height:${height}px;left:calc(${l}%+2px);width:calc(${w}%-4px);background:${c}22;color:${c};border-left-color:${c}`;
+        let recurIcon=t.recurrence==="always"?'<span class="ev-recur-icon">🔁</span>':t.recurrence==="yearly"?'<span class="ev-recur-icon">📆</span>':"";
+        let notifIcon=t.notifEnabled?'<span class="ev-recur-icon" style="right:16px">🔔</span>':"";
+        ev.innerHTML=`<div class="ev-title-t">${esc(t.title)}</div>${height>28?`<div class="ev-time-t">${t.start}–${t.end}</div>`:""}${recurIcon}${notifIcon}`;
+        ev.addEventListener("click",()=>deleteTask(t.id));
+        ev.addEventListener("contextmenu",e=>{e.preventDefault();deleteTask(t.id);});
+        col.appendChild(ev);
+      });
+    });
+  }
+
+  // ── BUILD TIME COLUMN ─────────────────────────────────
+  function buildTimeCol(slotClass,spanClass){
+    let tc=document.createElement("div");
+    tc.style.cssText=`height:${HOURS*PX_H}px;position:relative`;
+    for(let h=0;h<HOURS;h++){
+      let s=document.createElement("div");
+      s.className=slotClass;s.style.top=h*PX_H+"px";
+      if(h>0)s.innerHTML=`<span class="${spanClass}">${String(h).padStart(2,"0")}:00</span>`;
+      tc.appendChild(s);
+    }
+    return tc;
+  }
+
+  // ── BUILD DAY COLUMN ──────────────────────────────────
+  function buildDayCol(date, dayIdx, bgClass, halfClass){
+    let col=document.createElement("div");
+    col.style.cssText=`height:${HOURS*PX_H}px;position:relative`;
+    for(let h=0;h<HOURS;h++){
+      let bg=document.createElement("div");
+      bg.className=bgClass+(h%2?" alt":"");bg.style.top=h*PX_H+"px";col.appendChild(bg);
+      let half=document.createElement("div");
+      half.className=halfClass;half.style.top=h*PX_H+PX_H/2+"px";col.appendChild(half);
+    }
+    if(date.toDateString()===new Date().toDateString()){
+      let now=new Date();
+      let top=((now.getHours()*60+now.getMinutes())/60)*PX_H;
+      let nl=document.createElement("div");
+      nl.className="now-line";nl.style.top=top+"px";
+      nl.innerHTML='<div class="now-dot"></div>';col.appendChild(nl);
+    }
+    renderEventsInCol(col, dayIdx, date);
+    return col;
+  }
+
+  // ── RENDER ────────────────────────────────────────────
+  function render(){renderTopbar();renderDayTabs();renderCalendarDesktop();renderCalendarMobile();renderSidebar();}
+
+  function renderTopbar(){
+    let dates=getWeekDates();
+    let fmt=d=>d.toLocaleDateString("pt-PT",{day:"numeric",month:"short"});
+    document.getElementById("weekLabel").textContent=fmt(dates[0])+" – "+fmt(dates[6]);
+  }
+
+  function renderDayTabs(){
+    let dates=getWeekDates(),today=new Date();
+    let container=document.getElementById("dayTabs");container.innerHTML="";
+    dates.forEach(date=>{
+      let dayIdx=date.getDay();
+      let hasTasks=tasks.some(t=>t.date?taskMatchesDate(t,date):(t.day===dayIdx&&isTaskVisible(t)));
+      let btn=document.createElement("button");
+      btn.className="day-tab"+(mobileDay===dayIdx?" active":"")+(hasTasks?" has-events":"");
+      if(date.toDateString()===today.toDateString())btn.style.fontWeight="600";
+      btn.innerHTML=`${DAYS_SHORT[dayIdx]} <span style="font-size:11px;font-weight:400">${date.getDate()}</span>`;
+      btn.onclick=()=>{mobileDay=dayIdx;renderDayTabs();renderCalendarMobile();};
+      container.appendChild(btn);
+    });
+  }
+
+  function renderCalendarDesktop(){
+    let grid=document.getElementById("calGrid");grid.innerHTML="";
+    let dates=getWeekDates(),today=new Date();
+    let corner=document.createElement("div");corner.className="cal-corner";grid.appendChild(corner);
+    dates.forEach(date=>{
+      let hdr=document.createElement("div");
+      hdr.className="day-hdr"+(date.toDateString()===today.toDateString()?" today":"");
+      hdr.innerHTML=`<div class="dname">${DAYS_SHORT[date.getDay()]}</div><div class="dnum">${date.getDate()}</div>`;
+      grid.appendChild(hdr);
+    });
+    let tc=buildTimeCol("time-slot","");
+    tc.className="time-col";grid.appendChild(tc);
+    dates.forEach(date=>{
+      let col=buildDayCol(date,date.getDay(),"hour-bg","half-line");
+      col.className="day-col";grid.appendChild(col);
+    });
+  }
+
+  function renderCalendarMobile(){
+    let mc=document.getElementById("mobileCal");mc.innerHTML="";
+    let dates=getWeekDates();
+    let activeDate=dates.find(d=>d.getDay()===mobileDay)||dates[0];
+    let tc=document.createElement("div");
+    tc.className="mobile-time-col";
+    tc.style.cssText=`width:36px;flex-shrink:0;position:relative;border-right:1px solid var(--border);height:${HOURS*PX_H}px`;
+    for(let h=0;h<HOURS;h++){
+      let s=document.createElement("div");
+      s.className="mobile-time-slot";s.style.top=h*PX_H+"px";
+      if(h>0)s.innerHTML=`<span>${String(h).padStart(2,"0")}:00</span>`;
+      tc.appendChild(s);
+    }
+    mc.appendChild(tc);
+    let col=buildDayCol(activeDate, mobileDay, "mobile-hour-bg","mobile-half-line");
+    col.className="mobile-day-col";
+    mc.appendChild(col);
+  }
+
+  function renderSidebar(){
+    let visible=tasks.filter(t=>isTaskVisible(t));
+    document.getElementById("evCount").textContent=visible.length;
+    let list=document.getElementById("eventList");list.innerHTML="";
+    if(!visible.length){list.innerHTML='<div class="empty-msg">Sem eventos para esta semana.</div>';return;}
+    const recurLabel={week:"📅 Esta semana",always:"🔁 Toda semana",yearly:"📆 Anual"};
+    [...visible].sort((a,b)=>a.day-b.day||toMin(a.start)-toMin(b.start)).forEach(t=>{
+      let chip=document.createElement("div");chip.className="ev-chip";
+      let rb=`<span class="recur-badge">${recurLabel[t.recurrence]||"📅"}</span>`;
+      let datePart=t.date?`${t.date.slice(8,10)}/${t.date.slice(5,7)}`:DAYS_SHORT[t.day];
+      let notifBadge=t.notifEnabled?`<span style="font-size:9px">🔔</span>`:"";
+      chip.innerHTML=`<div class="ev-chip-dot" style="background:${PCOLORS[t.priority]}"></div><div class="ev-chip-info"><div class="ev-chip-name">${esc(t.title)}</div><div class="ev-chip-meta">${datePart} · ${t.start}–${t.end} ${rb} ${notifBadge}</div></div><button class="ev-chip-del" onclick="deleteTask(${t.id})"><i class="ti ti-x"></i></button>`;
+      list.appendChild(chip);
+    });
+  }
+
+  // ── PWA INSTALL ───────────────────────────────────────
+  function setupPWA(){
+    let deferredPrompt=null;
+    const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)&&!window.MSStream;
+    const isAndroid=/Android/.test(navigator.userAgent);
+    const isStandalone=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+
+    function showInstallBanner(){
+      if(isStandalone)return;
+      const banner=document.getElementById("installBanner");
+      const sub=document.getElementById("installBannerSub");
+      if(isIOS){
+        sub.textContent='Safari → Partilhar → "Adicionar ao ecrã inicial"';
+        document.getElementById("installBannerBtn").textContent="Como instalar";
+      } else if(isAndroid){
+        sub.textContent="Instalar como app — sem precisar de loja";
+      } else {
+        sub.textContent="Instalar no Windows como app";
+      }
+      banner.style.display="flex";
+    }
+
+    window.addEventListener("beforeinstallprompt",e=>{
+      e.preventDefault();deferredPrompt=e;
+      document.getElementById("installBtn").style.display="inline-flex";
+      showInstallBanner();
+    });
+    window.addEventListener("appinstalled",()=>{
+      document.getElementById("installBtn").style.display="none";
+      document.getElementById("installBanner").style.display="none";
+      toast("App instalada com sucesso! ✓");
+    });
+    setTimeout(()=>{ if(!isStandalone) showInstallBanner(); }, 2000);
+
+    window.installApp = function(){
+      if(deferredPrompt){
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(r=>{
+          deferredPrompt=null;
+          document.getElementById("installBtn").style.display="none";
+          if(r.outcome==="accepted") document.getElementById("installBanner").style.display="none";
+        });
+      } else if(isIOS){
+        document.getElementById("installBanner").style.display="none";
+        toast('Safari → toca em  (partilhar) → "Adicionar ao ecrã inicial"',5000);
+      } else {
+        document.getElementById("installBanner").style.display="none";
+        toast("Clica no ícone ⊕ na barra de endereço do browser",4000);
+      }
+    };
+  }
+
+  // Verificação periódica de notificações pendentes (para quando a app reabre)
+  function checkScheduledNotifs(){
+    if(Notification.permission === "granted") scheduleAllNotifications();
+  }
+
+</script>
+
+<!-- ── INLINE SERVICE WORKER ── -->
+<script>
+(function(){
+  if(!("serviceWorker" in navigator)) return;
+  const swCode = `
+const CACHE="cpro-v2";
+const ASSETS=["./","./index.html","https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css"];
+self.addEventListener("install",e=>{
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS).catch(()=>{})));
+  self.skipWaiting();
+});
+self.addEventListener("activate",e=>{
+  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
+  self.clients.claim();
+});
+self.addEventListener("fetch",e=>{
+  if(e.request.url.includes("supabase.co"))return;
+  e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{
+    if(res.ok){let c=res.clone();caches.open(CACHE).then(cache=>cache.put(e.request,c));}
+    return res;
+  }).catch(()=>caches.match(e.request))));
+});
+  `;
+  // Registar SW inline via Blob (funciona se o ficheiro for servido por HTTP/HTTPS)
+  // Para produção, mantém o sw.js separado — esta versão inline é para quando só há um ficheiro
+  if(window.swBlobRegistered) return;
+  window.swBlobRegistered = true;
+  try{
+    const blob = new Blob([swCode], {type:"application/javascript"});
+    const url = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(url, {scope:"./"}).catch(()=>{
+      // Se falhar (CORS/scope), tenta o sw.js externo
+      navigator.serviceWorker.register("./sw.js",{scope:"./"}).catch(()=>{});
+    });
+  }catch(e){
+    navigator.serviceWorker.register("./sw.js",{scope:"./"}).catch(()=>{});
+  }
+})();
+</script>
+
+</body>
+</html>
